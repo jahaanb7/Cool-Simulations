@@ -1,0 +1,2 @@
+### Space Simulation
+Creating an entire interactive space simulation, it will include black hole simulation, light, and much more. Built in C using OpenGL. Hoping to learn more about graphics programming, and astronomy at the same time.
