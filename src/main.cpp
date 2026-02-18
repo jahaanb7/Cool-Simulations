@@ -20,15 +20,22 @@ struct Particle{
     float radius;
     float charge;
 
+    double gravityConstant = 0.00000667 * (mass / radius*radius);
+    glm::vec2 gravityAcceleration = glm::vec2(0.0f, -gravityConstant);
+
     Particle(glm::vec2 pos, glm::vec2 vel, float m, float r)
       : position(pos), velocity(vel), mass(m), radius(r){}
 
     void updatePosition(float deltaTime) {
-      position += velocity * deltaTime;
+        velocity -= gravityAcceleration * deltaTime;
+        position += velocity * deltaTime;
     }
 
-    void drawParticle(const Particle& p, int numSegments) {
+    void drawParticle(const Particle& p) {
         glBegin(GL_TRIANGLE_FAN);
+
+        int numSegments = 50;
+
         for(int i = 0; i < numSegments; i++){
 
             float theta = 2.0f * glm::pi<float>() * float(i) / float(numSegments);
@@ -71,17 +78,17 @@ void boundingBoundary(Particle& particle){
         particle.velocity.x *= -1.0f;
     }
 
-    else if(particle.position.x - particle.radius < 0){
+    if(particle.position.x - particle.radius < 0){
         particle.position.x = particle.radius;
         particle.velocity.x *= -1.0f;
     }
 
-    else if(particle.position.y + particle.radius > HEIGHT){
+    if(particle.position.y + particle.radius > HEIGHT){
         particle.position.y = HEIGHT - particle.radius;
         particle.velocity.y *= -1.0f;
     }
 
-    else if(particle.position.y - particle.radius < 0){
+    if(particle.position.y - particle.radius < 0){
         particle.position.y = particle.radius;
         particle.velocity.y *= -1.0f;
     }
@@ -117,13 +124,19 @@ int main(void)
     //initialize Particle
     glm::vec2 position(400.0f, 300.0f);
 
-    const float magnitude = 0.0f;
-    const float direction = 0.0f;
+    const float magnitude = 25.0f;
+    const float angleDegree = 180.0f;
+    const float angleRadians = glm::radians(angleDegree);
+
+    float directionX = magnitude*(cos(angleRadians));
+    float directionY = magnitude*(sin(angleRadians));
+
+    glm::vec2 velocity = glm::vec2(directionX, directionY);
 
     const float mass = 10.0f;
     const float radius = 20.0f;
 
-    Particle particle(position, glm::vec2(magnitude, direction), mass, radius);
+    Particle particle(position, velocity, mass, radius);
 
     float deltaTime = 0.0167f;
 
@@ -137,9 +150,9 @@ int main(void)
 
         boundingBoundary(particle);
 
-        particle.drawParticle(particle, 50);
-
         particle.updatePosition(deltaTime);
+
+        particle.drawParticle(particle);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
