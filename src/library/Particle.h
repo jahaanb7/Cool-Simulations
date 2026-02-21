@@ -10,8 +10,12 @@ class Particle{
     float radius;
     float damping = 0.995f;
 
-    Particle(glm::vec2 pos, glm::vec2 vel, float m, float r)
-      : position(pos), velocity(vel), mass(m), radius(r){}
+    Particle(glm::vec2 pos, glm::vec2 vel, float m, float r){
+        position = pos; 
+        velocity = vel;
+        mass = m;
+        radius = r;
+    }
 
     void updatePosition(float deltaTime){
         position += velocity * deltaTime;
