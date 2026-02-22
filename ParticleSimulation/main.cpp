@@ -3,8 +3,11 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp> 
 #include <glm/gtc/constants.hpp>
+
 #include "library/Particle.h"
 #include "library/Particle3D.h"
+#include "library/Camera.h"
+
 #include <vector>
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
@@ -28,6 +31,8 @@ Current Functionality:
 // Screen Dimension variables
 const float WIDTH = 800.0f;
 const float HEIGHT = 600.0f;
+
+const glm::vec3 center = glm::vec3(WIDTH/2.0f, HEIGHT/2.0f, 200.0f);
 
 // Frame Timing, and delay in particle drawing
 float elapsedTime = 0.0f;
@@ -211,11 +216,18 @@ int main(void)
         glLoadMatrixf(glm::value_ptr(projection));
 
         // View pipeline (Camera, ViewModel Matrix)
-        glm::vec3 cameraPos(800.0f , 300.0f, 600.0f);
-        glm::vec3 cameraTarget(0.0f,0.0f,0.0f);
-        glm::vec3 cameraUp(0.0f,1.0f,0.0f);
+        const float radius = 10.0f;
+        float camX = sin(deltaTime) * radius;
+        float camZ = cos(deltaTime) * radius;
 
-        glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
+        glm::vec3 camPosition = glm::vec3(center.x * camX, center.y, 800.0f * camZ);
+        glm::vec3 camDirection = glm::normalize(camPosition - center);
+
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
+        glm::vec3 cameraRight = glm::normalize(glm::cross(up, camDirection));
+        glm::vec3 cameraUp = glm::cross(camDirection, cameraRight);
+
+        glm::mat4 view = glm::lookAt(camPosition, center, cameraUp);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
