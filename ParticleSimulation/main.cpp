@@ -41,6 +41,24 @@ float TimeDelay = 0.5f;
 std::vector<Particle3D> particles;
 std::vector<float> spawnTimes;
 
+// Mouse Inputs
+double mouseX;
+double mouseY;
+
+double yaw = 0.0;
+double pitch = 0.0;
+
+double lastMouseX = WIDTH / 2.0;
+double lastMouseY = HEIGHT / 2.0;
+
+bool mousePressed = true;
+
+float sensitivity = 0.001f;
+const float camRadius = 900.0f;
+
+//Initialize camera
+Camera cam;
+
 void WindowResize(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
@@ -133,6 +151,49 @@ void drawParticleArray3D(std::vector<Particle3D>& particles, float deltaTime){
     }
 }
 
+void CameraSystem(GLFWwindow* window){
+    glfwGetCursorPos(window, &mouseX, &mouseY); 
+
+    if (mousePressed){
+        lastMouseX = mouseX; 
+        lastMouseY = mouseY; 
+
+        mousePressed = false; 
+    } 
+
+    double deltaX = mouseX - lastMouseX; 
+    double deltaY = mouseY - lastMouseY; 
+
+    lastMouseX = mouseX; lastMouseY = mouseY; 
+
+    deltaX *= sensitivity; 
+    deltaY *= sensitivity; 
+
+    yaw += deltaX; 
+    pitch -= deltaY; 
+
+    // Clamp pitch to prevent flipping 
+    if (pitch > 89.0) pitch = 89.0; 
+    if (pitch < -89.0) pitch = -89.0; 
+
+    cam.rotate(pitch, yaw);
+
+    float camX = camRadius * cos(pitch) * cos(yaw); 
+    float camY = camRadius * cos(pitch) * sin(yaw); 
+    float camZ = cos(pitch) * camRadius; 
+
+    glm::vec3 camPosition = glm::vec3(camX, camY, 0.0f); 
+    glm::vec3 camTarget = glm::vec3(0.0f, 0.0f, 0.0f); 
+    glm::vec3 camDirection = glm::normalize(camPosition - camTarget); 
+
+    // up vector 
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
+    glm::vec3 cameraRight = glm::normalize(glm::cross(up, camDirection)); 
+    glm::vec3 cameraUp = glm::cross(camDirection, cameraRight); 
+    
+    glm::mat4 view = glm::lookAt(camPosition, camTarget, cameraUp);
+}
+
 int main(void)
 {
     // initialize glfw
@@ -148,6 +209,8 @@ int main(void)
         glfwTerminate();
         return -1;
     }
+    
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // connect it to openGl (context)
     glfwMakeContextCurrent(window);
@@ -207,7 +270,7 @@ int main(void)
         double currentTime = glfwGetTime();
         double deltaTime = currentTime - lastFrame;
         lastFrame = currentTime;
-
+        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Perspective Projection (Perspective Matrix)
@@ -218,15 +281,6 @@ int main(void)
         glLoadMatrixf(glm::value_ptr(projection));
 
         // View pipeline (Camera, ViewModel Matrix)
-        const float radius = 900.0f;
-        float camX = sin(currentTime) * radius;
-        float camZ = cos(currentTime) * radius;
-
-        glm::vec3 camPosition = glm::vec3(camX, 0.0f, camZ);
-        glm::vec3 camTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-
-        glm::mat4 view = glm::lookAt(camPosition, camTarget, up);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
