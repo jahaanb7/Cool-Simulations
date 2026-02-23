@@ -1,6 +1,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <Quaternion.h>
+#include "Quaternion.h"
 
 class Camera{
   public:
@@ -31,9 +31,9 @@ class Camera{
       glm::vec3 defaultUp = glm::vec3(0.0f, 1.0f, 0.0f);
       
       // Rotate the default vectors by camera orientation
-      kHat= orientation.rotateAxis(defaultForward);
-      iHat= orientation.rotateAxis(defaultRight);
-      jHat= orientation.rotateAxis(defaultUp);
+      kHat= orientation.rotate(defaultForward);
+      iHat= orientation.rotate(defaultRight);
+      jHat= orientation.rotate(defaultUp);
 
     }
 
@@ -50,37 +50,30 @@ class Camera{
     void rotate(double pitch, double yaw){
 
       //create the rotations as quaternions
-      Quaternion pitchQuat = quaternionRotation(glm::vec3(1, 0, 0), pitch);
-      Quaternion yawQuat = quaternionRotation(glm::vec3(0, 1, 0), yaw);
+      Quaternion pitchQ = Quaternion::quaternionRotation(iHat, pitch);
+      Quaternion yawQ   = Quaternion::quaternionRotation(jHat, yaw);
       
       //apply yaw then pitch
-      Quaternion rotation = yawQuat.multiply_q(pitchQuat);
+      Quaternion rotation = yawQ*pitchQ;
       
       //apply that to the camera
-      orientation = multiplyQuaternion(rotation,orientation);
+      orientation = rotation*orientation;
+      orientation.normalize();
       
-      orientation = normalize(orientation);
-      
-      update_cam();
+      updateCam();
     }
 
 
-    void move_kHat(float amount){
-      camPosition.x += kHat.x * amount;
-      camPosition.y += kHat.y * amount;
-      camPosition.z += kHat.z * amount;
+    void moveZ(float amount){
+      camPosition += kHat * amount;
     }
 
-    void move_iHat(float amount) {
-      camPosition.x += iHat.x * amount;
-      camPosition.y += iHat.y * amount;
-      camPosition.z += iHat.z * amount;
+    void moveX(float amount) {
+      camPosition += iHat * amount;
     }
 
-    void move_jHat(float amount) {
-      camPosition.x += jHat.x * amount;
-      camPosition.y += jHat.y * amount;
-      camPosition.z += jHat.z * amount;
+    void moveY(float amount) {
+      camPosition += jHat * amount;
     }
 
     glm::vec3 get_kHat(){return kHat;}

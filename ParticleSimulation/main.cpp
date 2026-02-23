@@ -52,12 +52,10 @@ double lastMouseX = WIDTH / 2.0;
 double lastMouseY = HEIGHT / 2.0;
 
 bool mousePressed = true;
-
 float sensitivity = 0.001f;
-const float camRadius = 900.0f;
 
 //Initialize camera
-Camera cam;
+Camera cam(400.0f, 300.0f, 900.0f, 10.0f);
 
 void WindowResize(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
@@ -152,48 +150,46 @@ void drawParticleArray3D(std::vector<Particle3D>& particles, float deltaTime){
 }
 
 void CameraSystem(GLFWwindow* window){
-    glfwGetCursorPos(window, &mouseX, &mouseY); 
+    glfwGetCursorPos(window, &mouseX, &mouseY);
 
-    if (mousePressed){
-        lastMouseX = mouseX; 
-        lastMouseY = mouseY; 
+    if (mousePressed)
+    {
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+        mousePressed = false;
+    }
 
-        mousePressed = false; 
-    } 
+    float deltaX = (mouseX - lastMouseX) * sensitivity;
+    float deltaY = (mouseY - lastMouseY) * sensitivity;
 
-    double deltaX = mouseX - lastMouseX; 
-    double deltaY = mouseY - lastMouseY; 
+    lastMouseX = mouseX;
+    lastMouseY = mouseY;
 
-    lastMouseX = mouseX; lastMouseY = mouseY; 
-
-    deltaX *= sensitivity; 
-    deltaY *= sensitivity; 
-
-    yaw += deltaX; 
-    pitch -= deltaY; 
-
-    // Clamp pitch to prevent flipping 
-    if (pitch > 89.0) pitch = 89.0; 
-    if (pitch < -89.0) pitch = -89.0; 
-
-    cam.rotate(pitch, yaw);
-
-    float camX = camRadius * cos(pitch) * cos(yaw); 
-    float camY = camRadius * cos(pitch) * sin(yaw); 
-    float camZ = cos(pitch) * camRadius; 
-
-    glm::vec3 camPosition = glm::vec3(camX, camY, 0.0f); 
-    glm::vec3 camTarget = glm::vec3(0.0f, 0.0f, 0.0f); 
-    glm::vec3 camDirection = glm::normalize(camPosition - camTarget); 
-
-    // up vector 
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
-    glm::vec3 cameraRight = glm::normalize(glm::cross(up, camDirection)); 
-    glm::vec3 cameraUp = glm::cross(camDirection, cameraRight); 
-    
-    glm::mat4 view = glm::lookAt(camPosition, camTarget, cameraUp);
+    // rotate delta
+    cam.rotate(-deltaY * 50.0f, -deltaX * 50.0f);
 }
 
+void MoveCamera(GLFWwindow* window, float deltaTime){
+    float moveSpeed = 300.0f * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cam.moveZ(moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cam.moveZ(-moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cam.moveX(-moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cam.moveX(moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        cam.moveY(moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        cam.moveY(-moveSpeed);
+}
 int main(void)
 {
     // initialize glfw
@@ -281,6 +277,16 @@ int main(void)
         glLoadMatrixf(glm::value_ptr(projection));
 
         // View pipeline (Camera, ViewModel Matrix)
+
+        CameraSystem(window);
+
+        glm::vec3 camPosition = cam.getPosition();
+        glm::vec3 forward = cam.get_kHat();
+        glm::vec3 up = cam.get_jHat();
+
+        MoveCamera(window, deltaTime);
+
+        glm::mat4 view = glm::lookAt(camPosition, camPosition + forward,up);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();

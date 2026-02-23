@@ -45,7 +45,7 @@ class Quaternion{
         return glm::vec3(result.x, result.y, result.z);
     }
 
-    Quaternion quaternionRotation(glm::vec3 axis, float theta){
+    static Quaternion quaternionRotation(glm::vec3 axis, float theta){
       float half_angle = (glm::radians(theta))/2;
 
       float cos = glm::cos(half_angle);
@@ -61,17 +61,13 @@ class Quaternion{
       );
     }
 
-    Quaternion normalize(Quaternion q) {
-      double norm = sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
-      if (norm > 0.0001) {
-        return Quaternion(
-          q.w/norm,
-          q.x/norm,
-          q.y/norm,
-          q.z/norm
-        );
+    void normalize() {
+      float norm = sqrt(x*x + y*y + z*z + w*w);
+      if (norm > 0.0001){
+          w /= norm;
+          x /= norm;
+          y /= norm;
+          z /= norm;
       }
-
-      return Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
     }
 };
