@@ -10,6 +10,16 @@ class Camera{
     float camSpeed = 10.0f;
     Quaternion orientation = Quaternion(1.0f,0.0f,0.0f,0.0f);
 
+    double mouseX;
+    double mouseY;
+
+    double lastMouseX =  800.0 / 2.0;
+    double lastMouseY =  600.0 / 2.0;
+
+    bool mousePressed = true;
+    float sensitivity = 0.001f;
+
+
     // orientation based on the basis vectors
     glm::vec3 iHat;
     glm::vec3 jHat;
@@ -98,5 +108,48 @@ class Camera{
       camPosition.x = x;
       camPosition.y = y;
       camPosition.z = z;
-    }    
+    } 
+    
+    void CameraSystem(GLFWwindow* window){
+      
+      glfwGetCursorPos(window, &mouseX, &mouseY);
+
+      if (mousePressed)
+      {
+          lastMouseX = mouseX;
+          lastMouseY = mouseY;
+          mousePressed = false;
+      }
+
+      float deltaX = (mouseX - lastMouseX) * sensitivity;
+      float deltaY = (mouseY - lastMouseY) * sensitivity;
+
+      lastMouseX = mouseX;
+      lastMouseY = mouseY;
+
+      rotate(-deltaY * 50.0f, -deltaX * 50.0f);
+    }
+
+
+void MoveCamera(GLFWwindow* window, float deltaTime){
+    float moveSpeed = 300.0f * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        moveZ(moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        moveZ(-moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        moveX(-moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        moveX(moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        moveY(moveSpeed);
+
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        moveY(-moveSpeed);
+  }
 }; 

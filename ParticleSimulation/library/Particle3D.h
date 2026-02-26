@@ -19,10 +19,6 @@ class Particle3D{
       acceleration = glm::vec3(0.0f, -98.0f, 0.0f);
     }
 
-    void applyForce(const glm::vec3& force) {
-        acceleration += force / mass;
-    }
-
   void drawParticle3D(int lats, int longs){
     for(int i = 0; i < lats; i++){
       float lat0 = M_PI * (-0.5f + (float)i / lats);

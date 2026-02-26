@@ -7,9 +7,15 @@
 #include "library/Particle.h"
 #include "library/Particle3D.h"
 #include "library/Camera.h"
+#include "library/Render.h"
 
 #include <vector>
 #include <cmath>
+
+#include <random>
+std::random_device rd;
+std::mt19937 gen(rd());
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <cstdlib>
@@ -34,21 +40,11 @@ const float HEIGHT = 600.0f;
 // Frame Timing, and delay in particle drawing
 float elapsedTime = 0.0f;
 double lastFrame = 0.0f; 
-float TimeDelay = 0.5f;
+float TimeDelay = 0.01f;
 
 // Array of Particles and spawnTime (float)
 std::vector<Particle3D> particles;
 std::vector<float> spawnTimes;
-
-// Mouse Inputs
-double mouseX;
-double mouseY;
-
-double lastMouseX = WIDTH / 2.0;
-double lastMouseY = HEIGHT / 2.0;
-
-bool mousePressed = true;
-float sensitivity = 0.001f;
 
 //Initialize camera
 Camera cam(400.0f, 300.0f, 900.0f, 10.0f);
@@ -57,68 +53,8 @@ void WindowResize(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
 
-// 2D Boundary Box - collision and containment
-void drawBoundaryBox(float width, float height, float depth) {
-    float x = width / 2.0f;
-    float y = height / 2.0f;
-    float z = depth; 
-
-    glDisable(GL_LIGHTING);
-    glColor3f(1.0f,1.0f,1.0f); 
-
-    glBegin(GL_LINES);
-
-    glVertex3f(-x, -y, -z); glVertex3f( x, -y, -z);
-    glVertex3f( x, -y, -z); glVertex3f( x,  y, -z);
-    glVertex3f( x,  y, -z); glVertex3f(-x,  y, -z);
-    glVertex3f(-x,  y, -z); glVertex3f(-x, -y, -z);
-
-    glVertex3f(-x, -y,  z); glVertex3f( x, -y,  z);
-    glVertex3f( x, -y,  z); glVertex3f( x,  y,  z);
-    glVertex3f( x,  y,  z); glVertex3f(-x,  y,  z);
-    glVertex3f(-x,  y,  z); glVertex3f(-x, -y,  z);
-
-    glVertex3f(-x, -y, -z); glVertex3f(-x, -y,  z);
-    glVertex3f( x, -y, -z); glVertex3f( x, -y,  z);
-    glVertex3f( x,  y, -z); glVertex3f( x,  y,  z);
-    glVertex3f(-x,  y, -z); glVertex3f(-x,  y,  z);
-
-    glEnd();
-
-    glEnable(GL_LIGHTING);
-}
-
-// 3D Boundary Sphere - Visualization
-void drawBoundarySphere(int lats, int longs, int radius){
-
-    // Disabled Lighting so that it doesnt effect the boundary visualization
-    glDisable(GL_LIGHTING);
-
-    glColor3f(1.0f,1.0f,1.0f); 
-
-    // Uses Legacy Opengl for creating singular points (GL_POINTS)
-    glBegin(GL_POINTS);
-    for(int i = 0; i <= lats; i++){
-
-        float theta = i * M_PI/lats;
-        for(int j = 0; j <= longs; j++){
-
-            float phi = j * 2 * M_PI/longs;
-
-            float x = radius * sin(theta) * cos(phi);
-            float y = radius * sin(theta) * sin(phi);
-            float z = radius * cos(theta);
-
-            glVertex3f(x, y, z);
-        }
-    }
-    glEnd();
-    glEnable(GL_LIGHTING);
-}
-
 void drawParticleArray2D(std::vector<Particle>& particles, float deltaTime){
 
-    // auto& just gets the type of array it is automatically and is referenced
     for(auto& p : particles){        
         p.updatePosition(deltaTime);
         p.boundingBoundary(WIDTH, HEIGHT);
@@ -127,61 +63,44 @@ void drawParticleArray2D(std::vector<Particle>& particles, float deltaTime){
 }
 
 
-void CameraSystem(GLFWwindow* window){
-    glfwGetCursorPos(window, &mouseX, &mouseY);
+void SetGravity(Particle3D& particle){
+    
+    glm::vec3 bottom = glm::vec3(0.0f, -400.0f, 0.0f);
+    glm::vec3 direction = bottom - particle.position;
+    float distance = glm::length(direction);
 
-    if (mousePressed)
-    {
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
-        mousePressed = false;
+    direction = glm::normalize(direction);
+
+    if (distance < 5.0f){
+        distance = 5.0f;
     }
 
-    float deltaX = (mouseX - lastMouseX) * sensitivity;
-    float deltaY = (mouseY - lastMouseY) * sensitivity;
+    float gConstant = 7000000.0f; 
+    float accelMagnitude = gConstant / (distance * distance);
 
-    lastMouseX = mouseX;
-    lastMouseY = mouseY;
-
-    cam.rotate(-deltaY * 50.0f, -deltaX * 50.0f);
-}
-
-void MoveCamera(GLFWwindow* window, float deltaTime){
-    float moveSpeed = 300.0f * deltaTime;
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cam.moveZ(moveSpeed);
-
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cam.moveZ(-moveSpeed);
-
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cam.moveX(-moveSpeed);
-
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cam.moveX(moveSpeed);
-
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        cam.moveY(moveSpeed);
-
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        cam.moveY(-moveSpeed);
+    particle.acceleration += direction * accelMagnitude;
 }
 
 void VerletIntegration(Particle3D& particle, float deltaTime){
-    particle.position += (particle.velocity * deltaTime) + (0.5f * particle.acceleration * deltaTime * deltaTime);
+
+
+    particle.position += particle.velocity * deltaTime + 0.5f * particle.acceleration * deltaTime * deltaTime;
 
     glm::vec3 oldAcceleration = particle.acceleration;
 
-    particle.acceleration = glm::vec3(0.0f, -98.1f, 0.0f);
+    particle.acceleration = glm::vec3(0.0f);
 
-    particle.velocity += 0.5f * (oldAcceleration + particle.acceleration) * deltaTime; 
+    SetGravity(particle);
+
+    particle.velocity += 0.5f * (oldAcceleration + particle.acceleration) * deltaTime;
 }
 
 void drawParticleArray3D(std::vector<Particle3D>& particles, float deltaTime){
     for(int i = 0; i < particles.size(); i++){
+
         // elapsedTime is for the time delay in drawing each particle
         if(elapsedTime >= spawnTimes[i]){
+            
             VerletIntegration(particles[i], deltaTime);
 
             // Detect collision for iteration i against iteration i + 1 (j)
@@ -250,18 +169,18 @@ int main(void)
     glm::vec3 velocity = glm::vec3(directionX, directionY, directionZ);
 
     // variables for particle initialization
-    const float mass = 300.0f;
+    const float mass = 30.0f;
     const float radius = 10.0f;
     int numParticles = 100;
 
     // append numParticles to the array of particles and to spawnTimes array
     for(int i = 0; i < numParticles; i++){
-        particles.emplace_back(position, velocity, mass, radius);
-        spawnTimes.push_back(i * TimeDelay); // each particle spawns after 0.1s
-    }
 
-    // Testing particle
-    Particle3D TestParticle = Particle3D(position, velocity, mass, 30.0f);
+            particles.emplace_back(position, velocity, mass, radius);
+
+            // each particle spawns after 0.1s
+            spawnTimes.push_back(i * TimeDelay); 
+    }
 
     while (!glfwWindowShouldClose(window))
     {
@@ -280,13 +199,13 @@ int main(void)
 
         // View pipeline (Camera, ViewModel Matrix)
 
-        CameraSystem(window);
+        cam.CameraSystem(window);
 
         glm::vec3 camPosition = cam.getPosition();
         glm::vec3 forward = cam.get_kHat();
         glm::vec3 up = cam.get_jHat();
 
-        MoveCamera(window, deltaTime);
+        cam.MoveCamera(window, deltaTime);
 
         glm::mat4 view = glm::lookAt(camPosition, camPosition + forward,up);
 
@@ -301,17 +220,6 @@ int main(void)
         // Update
         elapsedTime += deltaTime;
         drawParticleArray3D(particles, deltaTime);
-
-        /* 
-        TestParticle.drawParticle3D(10,10);
-        TestParticle.updatePosition3D(deltaTime);
-        TestParticle.checkSphereCollision(400);
-        
-        for(int i = 0; i < particles.size(); i++){
-            TestParticle.Particle3DCollision(particles[i]);
-        }
-        */
-
         drawBoundarySphere(20, 20, 400);
 
         glfwSwapBuffers(window);
