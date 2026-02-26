@@ -46,6 +46,7 @@ float TimeDelay = 0.01f;
 std::vector<Particle3D> particles;
 std::vector<float> spawnTimes;
 
+
 //Initialize camera
 Camera cam(400.0f, 300.0f, 900.0f, 10.0f);
 
@@ -187,6 +188,7 @@ int main(void)
         double currentTime = glfwGetTime();
         double deltaTime = currentTime - lastFrame;
         lastFrame = currentTime;
+
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
